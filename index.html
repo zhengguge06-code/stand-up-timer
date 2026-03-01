@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>定时起立</title>
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 40px;
+            color: #e94560;
+            text-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
+        }
+
+        .timer-display {
+            font-size: 5rem;
+            font-weight: bold;
+            margin: 30px 0;
+            font-variant-numeric: tabular-nums;
+            text-shadow: 0 0 30px rgba(233, 69, 96, 0.3);
+        }
+
+        .timer-display.warning {
+            color: #f39c12;
+            animation: pulse 1s infinite;
+        }
+
+        .timer-display.alert {
+            color: #e94560;
+            animation: pulse 0.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: #e94560;
+            color: #fff;
+            box-shadow: 0 0 20px rgba(233, 69, 96, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(233, 69, 96, 0.6);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #aaa;
+            border: 2px solid #aaa;
+        }
+
+        .btn-secondary:hover {
+            color: #fff;
+            border-color: #fff;
+        }
+
+        .btn-stop {
+            background: #e74c3c;
+            color: #fff;
+        }
+
+        .preset-btns {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .preset-btn {
+            padding: 10px 20px;
+            border: 2px solid #e94560;
+            background: transparent;
+            color: #e94560;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .preset-btn:hover, .preset-btn.active {
+            background: #e94560;
+            color: #fff;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .notification-panel {
+            background: rgba(26, 26, 46, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            border: 3px solid #e94560;
+            margin-top: 30px;
+        }
+
+        .notification-panel h2 {
+            color: #e94560;
+            margin-bottom: 20px;
+        }
+
+        .notification-panel p {
+            margin-bottom: 20px;
+            color: #ccc;
+        }
+
+        .enable-notification {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .status {
+            margin-top: 20px;
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .tips {
+            margin-top: 40px;
+            color: #666;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⏰ 定时起立</h1>
+        
+        <div id="setupPanel">
+            <p style="color: #888; margin-bottom: 20px;">选择提醒间隔</p>
+            
+            <div class="preset-btns">
+                <button class="preset-btn" onclick="setPreset(25)">25 分钟</button>
+                <button class="preset-btn" onclick="setPreset(30)">30 分钟</button>
+                <button class="preset-btn active" onclick="setPreset(45)">45 分钟</button>
+                <button class="preset-btn" onclick="setPreset(60)">60 分钟</button>
+            </div>
+
+            <div style="margin: 20px 0; color: #888;">
+                <input type="number" id="customMinutes" placeholder="自定义分钟" 
+                    style="width: 120px; padding: 10px; border-radius: 10px; border: 2px solid #e94560; 
+                           background: transparent; color: #fff; text-align: center; font-size: 1rem;">
+            </div>
+
+            <button class="btn btn-primary" onclick="startTimer()">开始计时</button>
+            
+            <div class="status" id="notificationStatus">
+                通知状态: 点击启用
+            </div>
+        </div>
+
+        <div id="timerPanel" class="hidden">
+            <div class="timer-display" id="timerDisplay">45:00</div>
+            
+            <div>
+                <button class="btn btn-stop" onclick="stopTimer()">停止</button>
+                <button class="btn btn-secondary" onclick="resetTimer()">重置</button>
+            </div>
+            
+            <div class="tips">
+                时间到了会提醒你，响铃后可关闭
+            </div>
+        </div>
+
+        <div id="alertPanel" class="hidden notification-panel">
+            <h2>⏰ 时间到了！</h2>
+            <p>该站起来了活动一下</p>
+            <button class="btn btn-primary" onclick="dismissAlert()">好的，知道了</button>
+        </div>
+    </div>
+
+    <script>
+        let timerInterval = null;
+        let totalSeconds = 45 * 60;
+        let remainingSeconds = totalSeconds;
+        let notificationEnabled = false;
+        let audioContext = null;
+
+        // 检查通知权限
+        async function checkNotificationPermission() {
+            if ('Notification' in window) {
+                const status = document.getElementById('notificationStatus');
+                if (Notification.permission === 'granted') {
+                    notificationEnabled = true;
+                    status.textContent = '✅ 通知已开启';
+                    status.style.color = '#27ae60';
+                } else if (Notification.permission === 'denied') {
+                    status.textContent = '❌ 通知被拒绝，请在浏览器设置中开启';
+                    status.style.color = '#e74c3c';
+                } else {
+                    status.textContent = '⚠️ 点击启用通知';
+                }
+            } else {
+                document.getElementById('notificationStatus').textContent = '❌ 您的浏览器不支持通知';
+            }
+        }
+
+        // 请求通知权限
+        async function requestNotificationPermission() {
+            if (!('Notification' in window)) {
+                alert('您的浏览器不支持通知');
+                return;
+            }
+            
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    notificationEnabled = true;
+                    document.getElementById('notificationStatus').textContent = '✅ 通知已开启';
+                    document.getElementById('notificationStatus').style.color = '#27ae60';
+                } else {
+                    document.getElementById('notificationStatus').textContent = '❌ 通知被拒绝';
+                    document.getElementById('notificationStatus').style.color = '#e74c3c';
+                }
+            } catch (e) {
+                console.error('通知请求失败:', e);
+            }
+        }
+
+        document.getElementById('notificationStatus').addEventListener('click', requestNotificationPermission);
+
+        function setPreset(minutes) {
+            document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            totalSeconds = minutes * 60;
+            remainingSeconds = totalSeconds;
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            const minutes = Math.floor(remainingSeconds / 60);
+            const seconds = remainingSeconds % 60;
+            const display = document.getElementById('timerDisplay');
+            display.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            if (remainingSeconds <= 60) {
+                display.className = 'timer-display alert';
+            } else if (remainingSeconds <= 300) {
+                display.className = 'timer-display warning';
+            } else {
+                display.className = 'timer-display';
+            }
+        }
+
+        function startTimer() {
+            // 检查自定义时间
+            const customInput = document.getElementById('customMinutes');
+            if (customInput.value && customInput.value > 0) {
+                totalSeconds = parseInt(customInput.value) * 60;
+                remainingSeconds = totalSeconds;
+            }
+            
+            document.getElementById('setupPanel').classList.add('hidden');
+            document.getElementById('timerPanel').classList.remove('hidden');
+            
+            // 初始化音频
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            timerInterval = setInterval(() => {
+                remainingSeconds--;
+                updateDisplay();
+                
+                if (remainingSeconds <= 0) {
+                    triggerAlert();
+                }
+            }, 1000);
+        }
+
+        function triggerAlert() {
+            clearInterval(timerInterval);
+            
+            // 发送通知
+            if (notificationEnabled && Notification.permission === 'granted') {
+                new Notification('⏰ 定时起立', {
+                    body: '该站起来了，活动一下吧！',
+                    icon: '🍅',
+                    tag: 'stand-up'
+                });
+            }
+            
+            // 手机震动
+            if (navigator.vibrate) {
+                navigator.vibrate([500, 200, 500, 200, 500]);
+            }
+            
+            // 播放声音
+            playAlertSound();
+            
+            document.getElementById('timerPanel').classList.add('hidden');
+            document.getElementById('alertPanel').classList.remove('hidden');
+        }
+
+        function playAlertSound() {
+            if (!audioContext) return;
+            
+            try {
+                // 播放提示音
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 880;
+                oscillator.type = 'sine';
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                
+                oscillator.start();
+                
+                // 响3声
+                let count = 0;
+                const beepInterval = setInterval(() => {
+                    count++;
+                    if (count >= 3) {
+                        clearInterval(beepInterval);
+                        oscillator.stop();
+                    }
+                }, 500);
+            } catch (e) {
+                console.log('播放声音失败:', e);
+            }
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            document.getElementById('timerPanel').classList.add('hidden');
+            document.getElementById('setupPanel').classList.remove('hidden');
+        }
+
+        function resetTimer() {
+            remainingSeconds = totalSeconds;
+            updateDisplay();
+        }
+
+        function dismissAlert() {
+            document.getElementById('alertPanel').classList.add('hidden');
+            document.getElementById('setupPanel').classList.remove('hidden');
+            remainingSeconds = totalSeconds;
+            updateDisplay();
+        }
+
+        // 初始化
+        checkNotificationPermission();
+        updateDisplay();
+
+        // 注册 Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(e => console.log('SW 注册失败:', e));
+        }
+    </script>
+</body>
+</html>
