@@ -342,9 +342,13 @@
             if (!audioContext) return;
             
             try {
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+                
                 const masterGain = audioContext.createGain();
                 masterGain.connect(audioContext.destination);
-                masterGain.gain.setValueAtTime(0, audioContext.currentTime);
+                masterGain.gain.setValueAtTime(0.3, audioContext.currentTime);
                 
                 const frequencies = [261.63, 329.63, 392.00, 523.25];
                 
