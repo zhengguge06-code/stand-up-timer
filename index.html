@@ -291,11 +291,7 @@
             }
         }
 
-        let timerStartTime = null;
-        let timerAnimationId = null;
-        
         function startTimer() {
-            // 检查自定义时间
             const customInput = document.getElementById('customMinutes');
             if (customInput.value && customInput.value > 0) {
                 totalSeconds = parseInt(customInput.value) * 60;
@@ -305,7 +301,6 @@
             document.getElementById('setupPanel').classList.add('hidden');
             document.getElementById('timerPanel').classList.remove('hidden');
             
-            // 初始化音频
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             if (audioContext.state === 'suspended') {
                 audioContext.resume();
