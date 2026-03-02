@@ -218,7 +218,8 @@
     </div>
 
     <script>
-        let timerInterval = null;
+        let timerStartTime = null;
+        let timerAnimationId = null;
         let totalSeconds = 45 * 60;
         let remainingSeconds = totalSeconds;
         let notificationEnabled = false;
@@ -290,6 +291,9 @@
             }
         }
 
+        let timerStartTime = null;
+        let timerAnimationId = null;
+        
         function startTimer() {
             // 检查自定义时间
             const customInput = document.getElementById('customMinutes');
@@ -303,19 +307,50 @@
             
             // 初始化音频
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
             
-            timerInterval = setInterval(() => {
-                remainingSeconds--;
+            timerStartTime = Date.now();
+            
+            function tick() {
+                const elapsed = Math.floor((Date.now() - timerStartTime) / 1000);
+                remainingSeconds = Math.max(0, totalSeconds - elapsed);
                 updateDisplay();
                 
                 if (remainingSeconds <= 0) {
                     triggerAlert();
+                    return;
                 }
-            }, 1000);
+                
+                timerAnimationId = requestAnimationFrame(tick);
+            }
+            
+            timerAnimationId = requestAnimationFrame(tick);
+        }
+
+        function stopTimer() {
+            if (timerAnimationId) {
+                cancelAnimationFrame(timerAnimationId);
+                timerAnimationId = null;
+            }
+            document.getElementById('timerPanel').classList.add('hidden');
+            document.getElementById('setupPanel').classList.remove('hidden');
+        }
+
+        function resetTimer() {
+            if (timerStartTime) {
+                timerStartTime = Date.now();
+            }
+            remainingSeconds = totalSeconds;
+            updateDisplay();
         }
 
         function triggerAlert() {
-            clearInterval(timerInterval);
+            if (timerAnimationId) {
+                cancelAnimationFrame(timerAnimationId);
+                timerAnimationId = null;
+            }
             
             // 发送通知
             if (notificationEnabled && Notification.permission === 'granted') {
@@ -401,17 +436,6 @@
             } catch (e) {
                 console.log('播放声音失败:', e);
             }
-        }
-
-        function stopTimer() {
-            clearInterval(timerInterval);
-            document.getElementById('timerPanel').classList.add('hidden');
-            document.getElementById('setupPanel').classList.remove('hidden');
-        }
-
-        function resetTimer() {
-            remainingSeconds = totalSeconds;
-            updateDisplay();
         }
 
         function dismissAlert() {
